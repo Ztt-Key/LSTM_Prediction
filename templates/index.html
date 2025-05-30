@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>歌词预测系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 100%;
+            padding: 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1em;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+
+        .status-ready {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-loading {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 500;
+            font-size: 1.1em;
+        }
+
+        .input-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e6ed;
+            border-radius: 12px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+            transition: border-color 0.3s ease;
+        }
+
+        .input-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-block;
+            text-align: center;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
+            color: #2d3436;
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 8px 25px rgba(255, 234, 167, 0.3);
+        }
+
+        .results-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border-left: 4px solid #667eea;
+            display: none;
+        }
+
+        .results-section.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .results-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .input-display {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 3px solid #4ecdc4;
+            font-style: italic;
+            color: #555;
+        }
+
+        .prediction-list {
+            list-style: none;
+        }
+
+        .prediction-item {
+            background: white;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border-left: 3px solid #96ceb4;
+            transition: transform 0.2s ease;
+            position: relative;
+        }
+
+        .prediction-item:hover {
+            transform: translateX(5px);
+        }
+
+        .prediction-item::before {
+            content: '🎵';
+            position: absolute;
+            left: -15px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 1.2em;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #dc3545;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .examples {
+            margin: 20px 0;
+        }
+
+        .examples h4 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+
+        .example-item {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 5px 12px;
+            margin: 3px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .example-item:hover {
+            background: #bbdefb;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+                margin: 10px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .btn {
+                width: 100%;
+                margin-right: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎤 歌词预测系统</h1>
+            <p>输入一句歌词，AI为您创作下一句</p>
+            <div id="status-indicator" class="status-indicator status-loading">
+                系统正在初始化...
+            </div>
+        </div>
+
+        <div class="input-section">
+            <div class="input-group">
+                <label for="lyrics-input">🎵 请输入一句歌词：</label>
+                <textarea 
+                    id="lyrics-input" 
+                    placeholder="例如：月亮代表我的心..."
+                    maxlength="200"
+                ></textarea>
+            </div>
+
+            <div class="examples">
+                <h4>💡 试试这些例子：</h4>
+                <span class="example-item" onclick="fillExample('月亮代表我的心')">月亮代表我的心</span>
+                <span class="example-item" onclick="fillExample('春天在哪里呀')">春天在哪里呀</span>
+                <span class="example-item" onclick="fillExample('阳光灿烂的日子')">阳光灿烂的日子</span>
+                <span class="example-item" onclick="fillExample('友谊之光照亮前方')">友谊之光照亮前方</span>
+                <span class="example-item" onclick="fillExample('时光荏苒岁月如歌')">时光荏苒岁月如歌</span>
+            </div>
+
+            <button id="predict-btn" class="btn" onclick="predictLyrics()" disabled>
+                🔮 预测下一句
+            </button>
+            <button id="train-btn" class="btn btn-secondary" onclick="trainModel()">
+                🎯 重新训练模型
+            </button>
+        </div>
+
+        <div id="results-section" class="results-section">
+            <h3>🎼 预测结果</h3>
+            <div id="input-display" class="input-display"></div>
+            <ul id="prediction-list" class="prediction-list"></ul>
+        </div>
+
+        <div class="footer">
+            <p>💝 基于深度学习的中文歌词生成系统</p>
+        </div>
+    </div>
+
+    <script>
+        let systemReady = false;
+
+        // 页面加载时检查系统状态
+        window.onload = function() {
+            checkSystemStatus();
+            // 每5秒检查一次状态（仅在系统未就绪时）
+            const statusCheck = setInterval(() => {
+                if (!systemReady) {
+                    checkSystemStatus();
+                } else {
+                    clearInterval(statusCheck);
+                }
+            }, 5000);
+        };
+
+        function checkSystemStatus() {
+            fetch('/status')
+                .then(response => response.json())
+                .then(data => {
+                    const indicator = document.getElementById('status-indicator');
+                    const predictBtn = document.getElementById('predict-btn');
+                    
+                    if (data.ready) {
+                        indicator.textContent = '✅ 系统已就绪';
+                        indicator.className = 'status-indicator status-ready';
+                        predictBtn.disabled = false;
+                        systemReady = true;
+                    } else if (data.model_file_exists && data.vocab_file_exists) {
+                        indicator.textContent = '🔄 正在加载模型...';
+                        indicator.className = 'status-indicator status-loading';
+                    } else {
+                        indicator.textContent = '🔄 正在训练模型...';
+                        indicator.className = 'status-indicator status-loading';
+                    }
+                })
+                .catch(error => {
+                    console.error('状态检查失败:', error);
+                    const indicator = document.getElementById('status-indicator');
+                    indicator.textContent = '❌ 系统错误';
+                    indicator.className = 'status-indicator status-error';
+                });
+        }
+
+        function fillExample(text) {
+            document.getElementById('lyrics-input').value = text;
+        }
+
+        function predictLyrics() {
+            const input = document.getElementById('lyrics-input').value.trim();
+            const resultsSection = document.getElementById('results-section');
+            const inputDisplay = document.getElementById('input-display');
+            const predictionList = document.getElementById('prediction-list');
+            const predictBtn = document.getElementById('predict-btn');
+
+            if (!input) {
+                alert('请输入歌词内容');
+                return;
+            }
+
+            // 显示加载状态
+            resultsSection.classList.add('show');
+            inputDisplay.textContent = `输入: "${input}"`;
+            predictionList.innerHTML = '<li class="loading">正在预测中...</li>';
+            predictBtn.disabled = true;
+            predictBtn.textContent = '🔮 预测中...';
+
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ lyrics: input })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    predictionList.innerHTML = '';
+                    data.predictions.forEach((prediction, index) => {
+                        const li = document.createElement('li');
+                        li.className = 'prediction-item';
+                        li.innerHTML = `<strong>预测 ${index + 1}:</strong> ${prediction}`;
+                        predictionList.appendChild(li);
+                    });
+                } else {
+                    predictionList.innerHTML = `<li class="error">预测失败: ${data.error}</li>`;
+                }
+            })
+            .catch(error => {
+                console.error('预测失败:', error);
+                predictionList.innerHTML = '<li class="error">网络错误，请稍后重试</li>';
+            })
+            .finally(() => {
+                predictBtn.disabled = false;
+                predictBtn.textContent = '🔮 预测下一句';
+            });
+        }
+
+        function trainModel() {
+            const trainBtn = document.getElementById('train-btn');
+            const indicator = document.getElementById('status-indicator');
+            
+            if (!confirm('重新训练模型需要一些时间，确定要继续吗？')) {
+                return;
+            }
+
+            trainBtn.disabled = true;
+            trainBtn.textContent = '🎯 训练中...';
+            indicator.textContent = '🔄 正在训练模型...';
+            indicator.className = 'status-indicator status-loading';
+            systemReady = false;
+
+            fetch('/train', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('模型训练完成！');
+                    checkSystemStatus();
+                } else {
+                    alert(`训练失败: ${data.error}`);
+                    indicator.textContent = '❌ 训练失败';
+                    indicator.className = 'status-indicator status-error';
+                }
+            })
+            .catch(error => {
+                console.error('训练失败:', error);
+                alert('训练失败，请稍后重试');
+                indicator.textContent = '❌ 训练失败';
+                indicator.className = 'status-indicator status-error';
+            })
+            .finally(() => {
+                trainBtn.disabled = false;
+                trainBtn.textContent = '🎯 重新训练模型';
+            });
+        }
+
+        // 回车键预测
+        document.getElementById('lyrics-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey && systemReady) {
+                e.preventDefault();
+                predictLyrics();
+            }
+        });
+    </script>
+</body>
+</html> 
