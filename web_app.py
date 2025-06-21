@@ -2,7 +2,7 @@ from flask import Flask, render_template, request, jsonify
 import os
 import sys
 import traceback
-from enhanced_lyrics_predictor import EnhancedLyricsPredictor
+from optimized_lyrics_predictor import OptimizedLyricsPredictor
 
 app = Flask(__name__)
 
@@ -13,15 +13,15 @@ def initialize_predictor():
     """初始化预测器"""
     global predictor
     try:
-        print("开始初始化预测器...")
-        predictor = EnhancedLyricsPredictor()
+        print("开始初始化优化版预测器...")
+        predictor = OptimizedLyricsPredictor()
         
         # 尝试加载已有模型
         if not predictor.load_model():
-            print("没有找到已训练的模型，正在训练新模型...")
-            predictor.train_enhanced_model(epochs=30)  # 减少训练轮数以加快启动
+            print("没有找到已训练的模型，正在训练新的优化模型...")
+            predictor.train_optimized_model(epochs=40)  # 训练优化模型
             predictor.load_model()
-        print("预测器初始化完成！")
+        print("优化版预测器初始化完成！")
     except Exception as e:
         print(f"初始化预测器时出错: {e}")
         print(f"错误详情: {traceback.format_exc()}")
@@ -50,11 +50,9 @@ def predict():
         return jsonify({'error': '请输入歌词内容'}), 400
     
     try:
-        # 生成预测
-        predictions = predictor.predict_next_line_enhanced(
+        # 使用优化版预测器生成预测
+        predictions = predictor.predict_with_quality_control(
             input_lyrics, 
-            max_length=20, 
-            temperature=0.8, 
             num_predictions=3
         )
         
@@ -74,10 +72,10 @@ def train_model():
     
     try:
         if predictor is None:
-            predictor = EnhancedLyricsPredictor()
+            predictor = OptimizedLyricsPredictor()
         
-        # 开始训练
-        predictor.train_enhanced_model(epochs=50)
+        # 开始训练优化模型
+        predictor.train_optimized_model(epochs=60)
         predictor.load_model()
         
         return jsonify({
@@ -93,8 +91,8 @@ def status():
     """获取系统状态"""
     global predictor
     
-    model_exists = os.path.exists('enhanced_lyrics_model.pth')
-    vocab_exists = os.path.exists('enhanced_vocab.pkl')
+    model_exists = os.path.exists('optimized_lyrics_model.pth')
+    vocab_exists = os.path.exists('optimized_vocab.pkl')
     model_loaded = predictor is not None and predictor.model is not None
     
     return jsonify({

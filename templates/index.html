@@ -59,6 +59,16 @@
             font-size: 1.1em;
         }
 
+        .model-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            margin: 10px 0;
+            display: inline-block;
+        }
+
         .status-indicator {
             display: inline-block;
             padding: 8px 16px;
@@ -210,10 +220,12 @@
             border-left: 3px solid #96ceb4;
             transition: transform 0.2s ease;
             position: relative;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         .prediction-item:hover {
             transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
         .prediction-item::before {
@@ -223,6 +235,25 @@
             top: 50%;
             transform: translateY(-50%);
             font-size: 1.2em;
+        }
+
+        .prediction-item.model-based {
+            border-left-color: #667eea;
+        }
+
+        .prediction-item.template-based {
+            border-left-color: #4ecdc4;
+        }
+
+        .prediction-item.rule-based {
+            border-left-color: #fab1a0;
+        }
+
+        .prediction-method {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            margin-top: 5px;
+            font-style: italic;
         }
 
         .loading {
@@ -308,8 +339,11 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>🎤 歌词预测系统</h1>
+            <h1>🎤 优化版歌词预测系统</h1>
             <p>输入一句歌词，AI为您创作下一句</p>
+            <div class="model-info">
+                🚀 使用优化版LSTM模型 | 📊 多策略预测 | 🎯 质量控制
+            </div>
             <div id="status-indicator" class="status-indicator status-loading">
                 系统正在初始化...
             </div>
@@ -434,7 +468,21 @@
                     data.predictions.forEach((prediction, index) => {
                         const li = document.createElement('li');
                         li.className = 'prediction-item';
-                        li.innerHTML = `<strong>预测 ${index + 1}:</strong> ${prediction}`;
+                        
+                        // 为不同类型的预测添加不同样式
+                        if (index === 0) {
+                            li.classList.add('model-based');
+                        } else if (index === 1) {
+                            li.classList.add('template-based');
+                        } else {
+                            li.classList.add('rule-based');
+                        }
+                        
+                        const methodLabels = ['🤖 AI模型预测', '📝 模板生成', '📋 规则预测'];
+                        li.innerHTML = `
+                            <strong>预测 ${index + 1}:</strong> ${prediction}
+                            <div class="prediction-method">${methodLabels[index] || '🎯 智能预测'}</div>
+                        `;
                         predictionList.appendChild(li);
                     });
                 } else {
